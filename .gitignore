@@ -1,0 +1,4 @@
+.vscode/
+local-data/
+frontend/out/data/
+*.pyc
