@@ -25,7 +25,7 @@ class SongDb:
                         datum = SongDbEntry(k, v)
                     self.data_by_uri[datum.song_uri] = datum
     def save_to(self, filepath):
-        output_list = {datum.song_uri: datum.display_name for datum in self.data_by_uri.values()}
+        output_list = [[datum.song_uri, datum.display_name] for datum in self.data_by_uri.values()]
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(output_list, f)
     def update(self, update_data):
