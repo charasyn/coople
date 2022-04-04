@@ -54,7 +54,8 @@ class CoopleStats {
 class CooplePlayer {
   static get SONGSEARCH_MAX_MATCHES() { return 5; }
   static get AUDIOSPRITE_LENGTHS() { return [2000, 2000, 3000, 3000, 5000, 5000]; }
-  static get ERR_UNKNOWN_DATE() { return "There is no puzzle for today's date (yet). Please try again later."; }
+  static get ERR_UNKNOWN_DATE() { return "There is no data for today's date (meaning Cooper is lazy and needs to update the site).\nPlease try again later."; }
+  static get ERR_NULL_DATE() { return "There is no puzzle for today's date.\nHave a great day and see you tomorrow! :)"; }
   static get ERR_SONG_NOT_IN_SONGDB() { return "Internal data error. Please contact coop.rocks.123e <at> gmail.com for help."; }
   constructor() {
     this.initialized = false;
@@ -91,9 +92,11 @@ class CooplePlayer {
   getElems() {
     this.elem = {};
     const names = [
+      "section_playback",
       "playback_meter_text",
       "playback_meter",
       "playback_play_stop",
+      "section_guesses",
       "guess_1",
       "guess_2",
       "guess_3",
@@ -106,9 +109,11 @@ class CooplePlayer {
       "guess_autocomplete",
       "guess_feedback",
       "section_done",
+      "share_text",
       "win_lose_text",
       "spotify_player",
       "section_err",
+      "err_header",
       "err_text",
     ];
     for (const name of names) {
@@ -116,7 +121,8 @@ class CooplePlayer {
     }
   }
   setErrorState(errorText) {
-    this.error = errorText;
+    this.errorHeader = "An error occurred!";
+    this.errorText = errorText;
     this.updateUI();
   }
   songdbIdxByUri(uri) { return this.songdb.findIndex(song => song[0] === uri); }
@@ -124,6 +130,12 @@ class CooplePlayer {
   maybeInitialize() {
     if (!this.songdb || !this.solutions) return;
     this.gameSong = this.solutions[this.gameDate];
+    if (this.gameSong === null) {
+      this.errorHeader = "No Coople today!";
+      this.errorText = CooplePlayer.ERR_NULL_DATE;
+      this.updateUI();
+      return;
+    }
     if (!this.gameSong) { this.setErrorState(CooplePlayer.ERR_UNKNOWN_DATE); return; }
     if (this.songdbIdxByUri(this.gameSong) === -1) { this.setErrorState(CooplePlayer.ERR_SONG_NOT_IN_SONGDB); return; }
     this.gameSongId = this.gameSong.substring(14);
@@ -192,14 +204,17 @@ class CooplePlayer {
   updateUI() {
     // Update what parts are visible
     if (this.errorText) {
-      this.elem.err_text.innerText = errorText;
-      this.setSectionVisible(this.elem.err_text);
+      this.elem.err_header.innerText = this.errorHeader;
+      this.elem.err_text.innerText = this.errorText;
+      this.setSectionVisible(this.elem.section_err);
     } else if (this.initialized) {
       if (this.state.gameCompletion === 'win') {
         this.elem.win_lose_text.innerText = "Yay! You did it! :)";
       } else if (this.state.gameCompletion === 'lose') {
         this.elem.win_lose_text.innerText = "Sorry. Better luck tomorrow!";
       }
+      this.setVisible(this.elem.section_playback, true);
+      this.setVisible(this.elem.section_guesses, true);
       this.setSectionVisible(this.state.gameCompletion === 'inProgress' ? this.elem.section_game : this.elem.section_done);
     }
     // Update guesses on screen
@@ -325,9 +340,11 @@ class CooplePlayer {
     let clipText = `coople ${this.gameDate} ${guessChar}/6\n\n${boxes}\n\nhttps://coopers.casa/coople/`;
     navigator.clipboard.writeText(clipText).then(function() {
       /* clipboard successfully set */
-    }, function() {
+      this.elem.share_text.innerText = "Link copied to clipboard!";
+    }.bind(this), function() {
       /* clipboard write failed */
-    });
+      this.elem.share_text.innerText = "Error: Link could not be copied to clipboard :(";
+    }.bind(this));
   }
 }
 var pl = new CooplePlayer();

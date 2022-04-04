@@ -27,25 +27,30 @@ Select a song as the correct solution for a given date, and add to the 'solution
     ap.add_argument('--songdb', metavar='songdb.json', type=pathlib.Path, required=True, dest='songdb')
     ap.add_argument('--solutions', metavar='solutions.json', type=pathlib.Path, required=True, dest='solutions')
     ap.add_argument('date', metavar='YYYY-MM-DD', type=str)
-    ap.add_argument('songname', metavar='song-pretty-name', type=str)
+    group = ap.add_mutually_exclusive_group(required=True)
+    group.add_argument('--songname', metavar='song-pretty-name', type=str)
+    group.add_argument('--skip', action='store_true')
     args = ap.parse_args()
 
     # Parse date
     thedate = datetime.date.fromisoformat(args.date)
-    
-    # Create songdb from file
-    songdb = SongDb()
-    songdb.load_from(args.songdb)
-    print(f"SongDb loaded from '{args.songdb}'.")
 
-    # Look through songdb for songname match
-    songs_by_name = {song.display_name: song for song in songdb.data_by_uri.values()}
-    best_matches = extract(args.songname, songs_by_name.keys(), limit=5)
-    if len(best_matches) > 1:
-        song_name = song_selection_menu([m[0] for m in best_matches])
+    if args.skip:
+        song_uri = None
     else:
-        song_name = best_matches[0][0]
-    song_uri = songs_by_name[song_name].song_uri
+        # Create songdb from file
+        songdb = SongDb()
+        songdb.load_from(args.songdb)
+        print(f"SongDb loaded from '{args.songdb}'.")
+
+        # Look through songdb for songname match
+        songs_by_name = {song.display_name: song for song in songdb.data_by_uri.values()}
+        best_matches = extract(args.songname, songs_by_name.keys(), limit=5)
+        if len(best_matches) > 1:
+            song_name = song_selection_menu([m[0] for m in best_matches])
+        else:
+            song_name = best_matches[0][0]
+        song_uri = songs_by_name[song_name].song_uri
 
     # Update solutions
     solutions = {}
